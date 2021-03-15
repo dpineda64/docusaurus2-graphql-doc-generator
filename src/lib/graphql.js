@@ -20,26 +20,26 @@ const {
   isInputObjectType: isInputType,
   isNullableType,
   printSchema,
-} = require("graphql");
-const { loadSchema } = require("@graphql-tools/load");
-const { GraphQLFileLoader } = require("@graphql-tools/graphql-file-loader");
-const { UrlLoader } = require("@graphql-tools/url-loader");
-const { JsonFileLoader } = require("@graphql-tools/json-file-loader");
-const { toArray, hasMethod, hasProperty } = require("./utils");
+} = require('graphql');
+const { loadSchema } = require('@graphql-tools/load');
+const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader');
+const { UrlLoader } = require('@graphql-tools/url-loader');
+const { JsonFileLoader } = require('@graphql-tools/json-file-loader');
+const { toArray, hasMethod, hasProperty } = require('./utils');
 
 const SCHEMA_EXCLUDE_LIST_PATTERN = /^(?!Query$|Mutation$|Subscription$|__.+$).*$/;
 
 function getDefaultValue(argument) {
   if (isListType(argument.type)) {
-    return `[${argument.defaultValue || ""}]`;
+    return `[${argument.defaultValue || ''}]`;
   }
 
   switch (argument.type) {
     case GraphQLID:
     case GraphQLInt:
-      return `${argument.defaultValue || "0"}`;
+      return `${argument.defaultValue || '0'}`;
     case GraphQLFloat:
-      return `${argument.defaultValue || "0.0"}`;
+      return `${argument.defaultValue || '0.0'}`;
     case GraphQLString:
     default:
       return argument.defaultValue ? `"${argument.defaultValue}"` : undefined;
@@ -48,36 +48,37 @@ function getDefaultValue(argument) {
 
 function getFilteredTypeMap(
   typeMap,
+  excludedOps,
   excludeList = SCHEMA_EXCLUDE_LIST_PATTERN,
 ) {
   if (!typeMap) return undefined;
   return Object.keys(typeMap)
-    .filter((key) => excludeList.test(key))
+    .filter((key) => excludeList.test(key) || excludedOps.includes(key))
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
 function getIntrospectionFieldsList(queryType) {
-  if (!queryType && !hasMethod(queryType, "getFields")) {
+  if (!queryType && !hasMethod(queryType, 'getFields')) {
     return undefined;
   }
   return queryType.getFields();
 }
 
 function getFields(type) {
-  if (!hasMethod(type, "getFields")) {
+  if (!hasMethod(type, 'getFields')) {
     return [];
   }
   const fieldMap = type.getFields();
   return Object.keys(fieldMap).map((name) => fieldMap[name]);
 }
 
-function getTypeName(type, defaultName = "") {
+function getTypeName(type, defaultName = '') {
   if (!type) {
     return undefined;
   }
   return (
-    (hasProperty(type, "name") && type.name) ||
-    (hasMethod(type, "toString") && type.toString()) ||
+    (hasProperty(type, 'name') && type.name) ||
+    (hasMethod(type, 'toString') && type.toString()) ||
     defaultName
   );
 }
@@ -89,8 +90,8 @@ function getTypeFromTypeMap(typeMap, type) {
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
-function getSchemaMap(schema) {
-  const typeMap = getFilteredTypeMap(schema.getTypeMap());
+function getSchemaMap(schema, excludedOps) {
+  const typeMap = getFilteredTypeMap(schema.getTypeMap(), excludedOps);
   return {
     queries: getIntrospectionFieldsList(
       schema.getQueryType && schema.getQueryType(),
@@ -112,11 +113,11 @@ function getSchemaMap(schema) {
 }
 
 function isParametrizedField(field) {
-  return hasProperty(field, "args") && field.args.length > 0;
+  return hasProperty(field, 'args') && field.args.length > 0;
 }
 
 function isOperation(query) {
-  return hasProperty(query, "type");
+  return hasProperty(query, 'type');
 }
 
 module.exports = {

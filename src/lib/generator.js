@@ -1,19 +1,19 @@
-const chalk = require("chalk");
+const chalk = require('chalk');
 const {
   getSchemaMap,
   loadSchema,
   GraphQLFileLoader,
   UrlLoader,
   JsonFileLoader,
-} = require("./graphql");
-const Renderer = require("./renderer");
-const Printer = require("./printer");
-const { round } = require("./utils");
+} = require('./graphql');
+const Renderer = require('./renderer');
+const Printer = require('./printer');
+const { round } = require('./utils');
 const {
   checkSchemaChanges,
   saveSchemaHash,
   saveSchemaFile,
-} = require("./diff");
+} = require('./diff');
 
 const time = process.hrtime();
 
@@ -25,6 +25,7 @@ module.exports = async function generateDocFromSchema(
   homepageLocation,
   diffMethod,
   tmpDir,
+  excludedOps,
 ) {
   return Promise.resolve(
     loadSchema(schemaLocation, {
@@ -38,7 +39,7 @@ module.exports = async function generateDocFromSchema(
         outputDir,
         baseURL,
       );
-      const rootTypes = getSchemaMap(schema);
+      const rootTypes = getSchemaMap(schema, excludedOps);
       Promise.all(
         Object.keys(rootTypes).map((typeName) =>
           r.renderRootTypes(typeName, rootTypes[typeName]),
