@@ -53,15 +53,24 @@ function getFilteredTypeMap(
 ) {
   if (!typeMap) return undefined;
   return Object.keys(typeMap)
-    .filter((key) => excludeList.test(key) || excludedOps.includes(key))
+    .filter((key) => excludeList.test(key) && !excludedOps.includes(key))
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
-function getIntrospectionFieldsList(queryType) {
+function getIntrospectionFieldsList(queryType, excluded) {
   if (!queryType && !hasMethod(queryType, 'getFields')) {
     return undefined;
   }
-  return queryType.getFields();
+  const fields = queryType.getFields();
+
+  return Object.keys(fields)
+    .filter((key) => !excluded.includes(key))
+    .reduce((obj, key) => {
+      return {
+        ...obj,
+        [key]: fields[key],
+      };
+    }, {});
 }
 
 function getFields(type) {
@@ -90,17 +99,20 @@ function getTypeFromTypeMap(typeMap, type) {
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
-function getSchemaMap(schema, excludedOps) {
-  const typeMap = getFilteredTypeMap(schema.getTypeMap(), excludedOps);
+function getSchemaMap(schema, excluded) {
+  const typeMap = getFilteredTypeMap(schema.getTypeMap(), excluded);
   return {
     queries: getIntrospectionFieldsList(
       schema.getQueryType && schema.getQueryType(),
+      excluded,
     ),
     mutations: getIntrospectionFieldsList(
       schema.getMutationType && schema.getMutationType(),
+      excluded,
     ),
     subscriptions: getIntrospectionFieldsList(
       schema.getSubscriptionType && schema.getSubscriptionType(),
+      excluded,
     ),
     directives: toArray(schema.getDirectives && schema.getDirectives()),
     objects: getTypeFromTypeMap(typeMap, GraphQLObjectType),

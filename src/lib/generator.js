@@ -25,7 +25,7 @@ module.exports = async function generateDocFromSchema(
   homepageLocation,
   diffMethod,
   tmpDir,
-  excludedOps,
+  excluded,
 ) {
   return Promise.resolve(
     loadSchema(schemaLocation, {
@@ -39,7 +39,7 @@ module.exports = async function generateDocFromSchema(
         outputDir,
         baseURL,
       );
-      const rootTypes = getSchemaMap(schema, excludedOps);
+      const rootTypes = getSchemaMap(schema, excluded);
       Promise.all(
         Object.keys(rootTypes).map((typeName) =>
           r.renderRootTypes(typeName, rootTypes[typeName]),

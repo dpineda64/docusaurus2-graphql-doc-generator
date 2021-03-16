@@ -11,12 +11,13 @@ const DEFAULT_OPTIONS = {
   homepage: path.join(__dirname, '../assets/', 'generated.md'),
   diffMethod: 'SCHEMA-DIFF',
   tmpDir: path.join(os.tmpdir(), '@edno/docusaurus2-graphql-doc-generator'),
-  excludedOps: [],
+  excluded: [],
 };
 
 module.exports = function pluginGraphQLDocGenerator(context, opts) {
   // Merge defaults with user-defined options.
   const config = { ...DEFAULT_OPTIONS, ...opts };
+
   return {
     name: 'docusaurus-graphql-doc-generator',
 
@@ -52,10 +53,9 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
           config.tmpDir,
         )
         .option(
-          '-e',
-          '--excluded <excludedOps>',
+          '-e, --excluded <excluded>',
           'Excludes operations from docs',
-          config.excludedOps,
+          config.excluded,
         )
         .description('Generate GraphQL Schema Documentation')
         .action(async (options) => {
@@ -66,7 +66,7 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
           const homepage = options.homepage;
           const diffMethod = options.force ? 'FORCE' : options.diff;
           const tmpDir = options.tmp;
-          const excludedOps = options.excludedOps;
+          const excluded = options.excluded;
           await generateDocFromSchema(
             baseURL,
             schema,
@@ -75,7 +75,7 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
             homepage,
             diffMethod,
             tmpDir,
-            excludedOps,
+            excluded,
           );
         });
     },
