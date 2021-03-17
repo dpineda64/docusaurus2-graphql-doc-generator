@@ -24,10 +24,11 @@ const {
 const { loadSchema } = require('@graphql-tools/load');
 const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader');
 const { UrlLoader } = require('@graphql-tools/url-loader');
+const fs = require('fs');
 const { JsonFileLoader } = require('@graphql-tools/json-file-loader');
 const { toArray, hasMethod, hasProperty } = require('./utils');
 
-const SCHEMA_EXCLUDE_LIST_PATTERN = /^(?!Query$|Mutation$|Subscription$|__.+$).*$/;
+const SCHEMA_EXCLUDE_LIST_PATTERN = /^(?!Query$|Mutation$|Subscription$|Interfaces|Directives|__.+$).*$/;
 
 function getDefaultValue(argument) {
   if (isListType(argument.type)) {
@@ -48,7 +49,7 @@ function getDefaultValue(argument) {
 
 function getFilteredTypeMap(
   typeMap,
-  excludedOps,
+  excludedOps = [],
   excludeList = SCHEMA_EXCLUDE_LIST_PATTERN,
 ) {
   if (!typeMap) return undefined;
@@ -57,7 +58,7 @@ function getFilteredTypeMap(
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
-function getIntrospectionFieldsList(queryType, excluded) {
+function getIntrospectionFieldsList(queryType, categories, excluded) {
   if (!queryType && !hasMethod(queryType, 'getFields')) {
     return undefined;
   }
@@ -99,19 +100,23 @@ function getTypeFromTypeMap(typeMap, type) {
     .reduce((res, key) => ((res[key] = typeMap[key]), res), {});
 }
 
-function getSchemaMap(schema, excluded) {
+function getSchemaMap(schema, excluded, categories = []) {
   const typeMap = getFilteredTypeMap(schema.getTypeMap(), excluded);
+
   return {
     queries: getIntrospectionFieldsList(
       schema.getQueryType && schema.getQueryType(),
+      categories,
       excluded,
     ),
     mutations: getIntrospectionFieldsList(
       schema.getMutationType && schema.getMutationType(),
+      categories,
       excluded,
     ),
     subscriptions: getIntrospectionFieldsList(
       schema.getSubscriptionType && schema.getSubscriptionType(),
+      categories,
       excluded,
     ),
     directives: toArray(schema.getDirectives && schema.getDirectives()),

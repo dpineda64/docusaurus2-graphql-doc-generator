@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require('path');
 const {
   isEnumType,
   isUnionType,
@@ -14,14 +14,14 @@ const {
   getNamedType,
   isInputType,
   isListType,
-} = require("./graphql");
-const { toSlug, hasProperty, hasMethod } = require("./utils");
-const { prettifyMarkdown } = require("./prettier");
+} = require('./graphql');
+const { toSlug, hasProperty, hasMethod } = require('./utils');
+const { prettifyMarkdown } = require('./prettier');
 
-const HEADER_SECTION_LEVEL = "###";
-const HEADER_SECTION_SUB_LEVEL = "####";
-const HEADER_SECTION_ITEM_LEVEL = "- #####";
-const NO_DESCRIPTION_TEXT = "No description";
+const HEADER_SECTION_LEVEL = '###';
+const HEADER_SECTION_SUB_LEVEL = '####';
+const HEADER_SECTION_ITEM_LEVEL = '- #####';
+const NO_DESCRIPTION_TEXT = 'No description';
 
 const TAG = `
 export const Tag = ({children, color}) => (
@@ -37,46 +37,63 @@ export const Tag = ({children, color}) => (
 );`;
 
 module.exports = class Printer {
-  constructor(schema, baseURL, linkRoot = "/") {
+  constructor(schema, baseURL, linkRoot = '/', categories = []) {
     this.schema = schema;
     this.baseURL = baseURL;
     this.linkRoot = linkRoot;
+    this.categories = categories;
+  }
+
+  withInCategories(type) {
+    const category = this.categories.find((cat) => {
+      return cat.pattern.test(type.name);
+    });
+
+    return category;
   }
 
   toLink(type, name) {
     let graphLQLNamedType = getNamedType(type);
     if (isListType(type)) graphLQLNamedType = getNamedType(type.ofType);
     let category;
+    // const foundCategory = this.withInCategories(graphLQLNamedType);
+
     switch (true) {
+      // case typeof foundCategory != 'undefined':
+      //   category = foundCategory.name;
+      //   break;
       case isEnumType(graphLQLNamedType):
-        category = "enums";
+        category = 'enums';
         break;
       case isUnionType(graphLQLNamedType):
-        category = "unions";
+        category = 'unions';
         break;
       case isInterfaceType(graphLQLNamedType):
-        category = "interfaces";
+        category = 'interfaces';
         break;
       case isObjectType(graphLQLNamedType):
-        category = "objects";
+        category = 'objects';
         break;
       case isInputType(graphLQLNamedType):
-        category = "inputs";
+        category = 'inputs';
         break;
       case isScalarType(graphLQLNamedType):
-        category = "scalars";
+        category = 'scalars';
         break;
       case isDirectiveType(graphLQLNamedType):
-        category = "directives";
+        category = 'directives';
         break;
     }
-
     if (category && graphLQLNamedType) {
       return `[\`${name}\`](${path.join(
         this.linkRoot,
         this.baseURL,
         category,
-        toSlug(graphLQLNamedType),
+        toSlug(
+          typeof graphLQLNamedType == 'object'
+            ? graphLQLNamedType.name
+            : graphLQLNamedType,
+        ),
       )})`;
     } else {
       return `\`${name}\``;
@@ -86,7 +103,7 @@ module.exports = class Printer {
   printSection(values, section, level = HEADER_SECTION_LEVEL) {
     if (values.length > 0)
       return `${level} ${section}\n\n${this.printSectionItems(values)}\n\n`;
-    return "";
+    return '';
   }
 
   printSectionItems(values, level = HEADER_SECTION_SUB_LEVEL) {
@@ -94,19 +111,19 @@ module.exports = class Printer {
       return values
         .map((v) => v && this.printSectionItem(v, level))
         .join(`\n\n`);
-    return "";
+    return '';
   }
 
   printSectionItem(type, level = HEADER_SECTION_SUB_LEVEL) {
     if (!type) {
-      return "";
+      return '';
     }
 
     let section = `${level} ${this.toLink(type, getTypeName(type))} ${
-      hasProperty(type, "type")
+      hasProperty(type, 'type')
         ? `(${this.toLink(type.type, getTypeName(type.type))})`
-        : ""
-    }\n\n${this.printDescription(type, "")}\n`;
+        : ''
+    }\n\n${this.printDescription(type, '')}\n`;
     if (isParametrizedField(type)) {
       section += this.printSectionItems(type.args, HEADER_SECTION_ITEM_LEVEL);
     }
@@ -114,26 +131,26 @@ module.exports = class Printer {
   }
 
   printCodeEnum(type) {
-    let code = "";
+    let code = '';
     if (isEnumType(type)) {
       code += `enum ${getTypeName(type)} {\n`;
       code += type
         .getValues()
         .map((v) => `  ${getTypeName(v)}`)
-        .join("\n");
+        .join('\n');
       code += `\n}`;
     }
     return code;
   }
 
   printCodeUnion(type) {
-    let code = "";
+    let code = '';
     if (isUnionType(type)) {
       code += `union ${getTypeName(type)} = `;
       code += type
         .getTypes()
         .map((v) => getTypeName(v))
-        .join(" | ");
+        .join(' | ');
     }
     return code;
   }
@@ -143,15 +160,15 @@ module.exports = class Printer {
   }
 
   printCodeArguments(type) {
-    let code = "";
-    if (hasProperty(type, "args") && type.args.length > 0) {
+    let code = '';
+    if (hasProperty(type, 'args') && type.args.length > 0) {
       code += `(\n`;
       code += type.args.reduce((r, v) => {
         const defaultValue = getDefaultValue(v);
         return `${r}  ${v.name}: ${v.type.toString()}${
-          defaultValue ? ` = ${defaultValue}` : ""
+          defaultValue ? ` = ${defaultValue}` : ''
         }\n`;
-      }, "");
+      }, '');
       code += `)`;
     }
     return code;
@@ -171,21 +188,21 @@ module.exports = class Printer {
   }
 
   printCodeType(type) {
-    let code = `${isInterfaceType(type) ? "interface" : "type"} ${getTypeName(
+    let code = `${isInterfaceType(type) ? 'interface' : 'type'} ${getTypeName(
       type,
     )}`;
     code += `${
-      hasMethod(type, "getInterfaces") && type.getInterfaces().length > 0
+      hasMethod(type, 'getInterfaces') && type.getInterfaces().length > 0
         ? ` implements ${type
             .getInterfaces()
             .map((v) => getTypeName(v))
-            .join(", ")}`
-        : ""
+            .join(', ')}`
+        : ''
     }`;
     code += ` {\n`;
     code += getFields(type)
       .map((v) => `  ${this.printCodeField(v)}`)
-      .join("");
+      .join('');
     code += `}`;
 
     return code;
@@ -199,21 +216,21 @@ module.exports = class Printer {
     if (type.isDeprecated) {
       return `<sub><sup><Tag color="#ffba00">DEPRECATED</Tag> ${type.deprecationReason}</sup></sub>\n\n`;
     }
-    return "";
+    return '';
   }
 
   printDescription(type, noText = NO_DESCRIPTION_TEXT) {
-    let description = "";
+    let description = '';
 
     description = `${this.printDeprecation(type)}${
-      (hasProperty(type, "description") && type.description) || noText
+      (hasProperty(type, 'description') && type.description) || noText
     }`;
 
     return description;
   }
 
   printCode(type) {
-    let code = "\n```graphql\n";
+    let code = '\n```graphql\n';
     switch (true) {
       case isEnumType(type):
         code += this.printCodeEnum(type);
@@ -238,43 +255,43 @@ module.exports = class Printer {
       default:
         code += `"${getTypeName(type)}" not supported`;
     }
-    code += "\n```\n";
+    code += '\n```\n';
     return code;
   }
 
   printType(name, type) {
     if (!type) {
-      return "";
+      return '';
     }
 
     const header = this.printHeader(name, getTypeName(type));
     const description = this.printDescription(type);
     const code = this.printCode(type);
 
-    let metadata = "";
+    let metadata = '';
     if (isEnumType(type)) {
-      metadata = this.printSection(type.getValues(), "Values");
+      metadata = this.printSection(type.getValues(), 'Values');
     }
 
     if (isUnionType(type)) {
-      metadata = this.printSection(type.getTypes(), "Possible types");
+      metadata = this.printSection(type.getTypes(), 'Possible types');
     }
 
     if (isObjectType(type) || isInterfaceType(type) || isInputType(type)) {
-      metadata = this.printSection(getFields(type), "Fields");
-      if (hasMethod(type, "getInterfaces")) {
-        metadata += this.printSection(type.getInterfaces(), "Interfaces");
+      metadata = this.printSection(getFields(type), 'Fields');
+      if (hasMethod(type, 'getInterfaces')) {
+        metadata += this.printSection(type.getInterfaces(), 'Interfaces');
       }
     }
 
     if (isOperation(type)) {
-      metadata = this.printSection(type.args, "Arguments");
-      const queryType = getTypeName(type.type).replace(/[![\]]*/g, "");
-      metadata += this.printSection([this.schema.getType(queryType)], "Type");
+      metadata = this.printSection(type.args, 'Arguments');
+      const queryType = getTypeName(type.type).replace(/[![\]]*/g, '');
+      metadata += this.printSection([this.schema.getType(queryType)], 'Type');
     }
 
     if (isDirectiveType(type)) {
-      metadata = this.printSection(type.args, "Arguments");
+      metadata = this.printSection(type.args, 'Arguments');
     }
 
     return prettifyMarkdown(
