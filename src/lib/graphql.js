@@ -119,7 +119,7 @@ function getSchemaMap(schema, excluded, categories = []) {
       categories,
       excluded,
     ),
-    directives: toArray(schema.getDirectives && schema.getDirectives()),
+    // directives: toArray(schema.getDirectives && schema.getDirectives()),
     objects: getTypeFromTypeMap(typeMap, GraphQLObjectType),
     unions: getTypeFromTypeMap(typeMap, GraphQLUnionType),
     interfaces: getTypeFromTypeMap(typeMap, GraphQLInterfaceType),
